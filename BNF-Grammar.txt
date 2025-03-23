@@ -1,51 +1,69 @@
-<program> ::= <statement_list>
+| : Alternation (OR). Example: a | b means "either a or b".
+{} : Repetition (zero or more). Example: {a} means "zero or more a".
+[] : Optional (zero or one). Example: [a] means "zero or one a".
+() : Grouping. Example: (a | b) groups a or b together.
+.. : Range. Example: "a".."z" means any letter from a to z.
 
-<statement_list> ::= <statement> | <statement> <statement_list> | ε
+program ::= { program_element }
 
-<statement> ::= <assignment> | <function_definition> | <function_call> | <return_statement> | <if_statement>
+program_element ::= function_definition | statement
 
-<assignment> ::= <identifier> "=" <expression> ";"
+function_definition ::= identifier "(" [parameter_list] ")" "{" {statement} [return_statement] "}"
 
-<function_definition> ::= <identifier> "(" <parameter_list> ")" "{" <statement_list> "}"
+parameter_list ::= identifier { "," identifier }
 
-<parameter_list> ::= <identifier> | <identifier> "," <parameter_list> | ε
+statement ::= assignment
+            | function_call_statement
+            | return_statement
+            | if_statement
+            | for_statement
 
-<function_call> ::= "call" <identifier> "(" <argument_list> ")" ";"
+assignment ::= identifier "=" expression ";"
 
-<argument_list> ::= <expression> | <expression> "," <argument_list> | ε
+function_call_statement ::= "call" identifier "(" [argument_list] ")" ";"
 
-<return_statement> ::= "return" <expression> ";"
+argument_list ::= expression { "," expression }
 
-<if_statement> ::= "if" "(" <expression> ")" "{" <statement_list> "}"
+return_statement ::= "return" expression ";"
 
-<expression> ::= <comparison_expression>
+if_statement ::= "if" "(" expression ")" "{" {statement} "}" [ "else" "{" {statement} "}" ]
 
-<comparison_expression> ::= <additive_expression> | <additive_expression> <rel_op> <additive_expression>
+for_statement ::= "for" "(" [assignment] ";" [expression] ";" [assignment] ")" "{" {statement} "}"
 
-<additive_expression> ::= <multiplicative_expression> | <multiplicative_expression> <add_op> <multiplicative_expression>
+expression ::= logical_expression
 
-<multiplicative_expression> ::= <factor> | <factor> <mul_op> <factor>
+logical_expression ::= comparison_expression { ("AND" | "OR") comparison_expression }
 
-<factor> ::= <number> | <string> | <identifier> | "(" <expression> ")" | <function_call>
+comparison_expression ::= additive_expression [ rel_op additive_expression ]
 
-<rel_op> ::= "==" | "!=" | "<=" | ">=" | "<" | ">"
+additive_expression ::= multiplicative_expression { add_op multiplicative_expression }
 
-<add_op> ::= "+" | "-"
+multiplicative_expression ::= factor { mul_op factor }
 
-<mul_op> ::= "*" | "/" | "%"
+factor ::= number
+         | string
+         | identifier
+         | "(" expression ")"
+         | function_call
 
-<identifier> ::= <letter> | <letter> <alphanum>
+function_call ::= identifier "(" [argument_list] ")"
 
-<letter> ::= "a" | "b" | "c" | ... | "z" | "A" | "B" | ... | "Z" | "_"
+rel_op ::= "==" | "!=" | "<=" | ">=" | "<" | ">"
 
-<alphanum> ::= <letter> | <digit> | <alphanum> <letter> | <alphanum> <digit>
+add_op ::= "+" | "-"
 
-<digit> ::= "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9"
+mul_op ::= "*" | "/" | "%"
 
-<number> ::= <digit> | <digit> <number> | <digit> "." <digit> | <digit> <number> "." <digit>
+identifier ::= letter { letter | digit | "_" }
 
-<string> ::= "\"" <char_sequence> "\""
+letter ::= "a".."z" | "A".."Z" | "_"
 
-<char_sequence> ::= <char> | <char> <char_sequence> | ε
+digit ::= "0".."9"
 
-<char> ::= <letter> | <digit> | <symbol>   (* Any printable character except quote *)
+number ::= digit { digit } [ "." digit { digit } ]
+
+string ::= "\"" { string_content } "\""
+
+string_content ::= letter | digit | special_char
+
+special_char ::= "!" | "@" | "#" | "$" | "%" | "^" | "&" | "*" | "(" | ")" | "-" | "+" | "=" | "{" | "}" | "[" | "]" | "|" | ";" | ":" | "," | "." | "?" | "/" | "<" | ">" | "_" | " " | "'"
