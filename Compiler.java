@@ -64,7 +64,7 @@ public class Compiler {
     private static final String SINGLE_OPERATORS = "+-*/%=(){}<>;,.";
     private static final String RELATIONAL_OPERATORS = "== != <= >= < >";
     private static final Pattern IDENTIFIER_PATTERN = Pattern.compile("[a-zA-Z_][a-zA-Z0-9_]*");
-    private static final Pattern NUMBER_PATTERN = Pattern.compile("[0-9]+");
+    private static final Pattern NUMBER_PATTERN = Pattern.compile("[0-9]+(\\.[0-9]+)?");
     private static final Pattern STRING_PATTERN = Pattern.compile("\"[^\"]*\"");
 
     private String input;
@@ -171,8 +171,11 @@ public class Compiler {
         ASTNode program = new ASTNode("Program");
         while (pos < tokens.size()) {
             ASTNode element = parseProgramElement();
-            if (element != null) program.children.add(element);
-            else pos++;
+            if (element != null) {
+                program.children.add(element);
+            } else {
+                pos++;
+            }
         }
         return program;
     }
@@ -191,13 +194,17 @@ public class Compiler {
                 if (lookahead + 1 < tokens.size() && tokens.get(pos + lookahead).value.equals(")") &&
                     tokens.get(pos + lookahead + 1).value.equals("{")) {
                     return parseFunctionDefinition();
+                } else {
+                    return parseAssignment();
                 }
+            } else if (next != null && "=".equals(next.value)) {
+                return parseAssignment();
             }
-            return parseAssignment();  // Handle top-level assignments
         } else if ("KEYWORD".equals(current.type) && "call".equals(current.value)) {
             return parseFunctionCall();
         }
-        errors.add("Error at line " + current.line + ", column " + current.column + ": Expected assignment, function definition, or 'call'");
+        errors.add("Error at line " + current.line + ", column " + current.column + 
+            ": Expected assignment, function definition, or 'call'");
         return null;
     }
 
@@ -277,7 +284,8 @@ public class Compiler {
         } else if ("IDENTIFIER".equals(current.type)) {
             return parseAssignment();
         }
-        errors.add("Error at line " + current.line + ", column " + current.column + ": Expected 'call' or assignment");
+        errors.add("Error at line " + current.line + ", column " + current.column + 
+            ": Expected 'call' or assignment");
         return null;
     }
 
@@ -293,19 +301,22 @@ public class Compiler {
             int exprStartColumn = currentToken() != null ? currentToken().column : next.column + 1;
             ASTNode expr = parseExpression();
             if (expr == null) {
-                errors.add("Error at line " + idToken.line + ", column " + exprStartColumn + ": Expected expression after '='");
+                errors.add("Error at line " + idToken.line + ", column " + exprStartColumn + 
+                    ": Expected expression after '='");
                 return null;
             }
             stmt.children.add(expr);
             Token semicolon = consume("OPERATOR", ";");
             if (semicolon == null) {
-                errors.add("Error at line " + idToken.line + ", column " + exprStartColumn + ": Expected ';' after assignment");
+                errors.add("Error at line " + idToken.line + ", column " + exprStartColumn + 
+                    ": Expected ';' after assignment");
                 return null;
             }
             symbolTable.add(idToken.value, inferReturnType(expr), idToken.line, idToken.column);
             return stmt;
         }
-        errors.add("Error at line " + idToken.line + ", column " + idToken.column + ": Expected '=' after identifier in assignment");
+        errors.add("Error at line " + idToken.line + ", column " + idToken.column + 
+            ": Expected '=' after identifier in assignment");
         return null;
     }
 
@@ -314,7 +325,8 @@ public class Compiler {
         Token idToken = consume("IDENTIFIER");
         if (idToken == null) {
             errors.add("Error at line " + (currentToken() != null ? currentToken().line : 0) + 
-                ", column " + (currentToken() != null ? currentToken().column : 0) + ": Expected identifier after 'call'");
+                ", column " + (currentToken() != null ? currentToken().column : 0) + 
+                ": Expected identifier after 'call'");
             return null;
         }
         ASTNode stmt = new ASTNode("FunctionCall");
@@ -324,7 +336,8 @@ public class Compiler {
         consume("OPERATOR", ")");
         consume("OPERATOR", ";");
         if (!symbolTable.contains(idToken.value) && !"print".equals(idToken.value)) {
-            errors.add("Error at line " + idToken.line + ", column " + idToken.column + ": Undefined function '" + idToken.value + "'");
+            errors.add("Error at line " + idToken.line + ", column " + idToken.column + 
+                ": Undefined function '" + idToken.value + "'");
         }
         return stmt;
     }
@@ -398,7 +411,8 @@ public class Compiler {
             consume("KEYWORD", "call");
             Token idToken = consume("IDENTIFIER");
             if (idToken == null) {
-                errors.add("Error at line " + current.line + ", column " + current.column + ": Expected identifier after 'call'");
+                errors.add("Error at line " + current.line + ", column " + current.column + 
+                    ": Expected identifier after 'call'");
                 return null;
             }
             ASTNode call = new ASTNode("FunctionCall");
@@ -407,7 +421,8 @@ public class Compiler {
             call.children.add(parseArgumentList());
             consume("OPERATOR", ")");
             if (!symbolTable.contains(call.value) && !"print".equals(call.value)) {
-                errors.add("Error at line " + idToken.line + ", column " + idToken.column + ": Undefined function '" + call.value + "'");
+                errors.add("Error at line " + idToken.line + ", column " + idToken.column + 
+                    ": Undefined function '" + call.value + "'");
             }
             return call;
         } else if ("IDENTIFIER".equals(current.type)) {
@@ -415,7 +430,8 @@ public class Compiler {
             ASTNode node = new ASTNode("Variable");
             node.value = id;
             if (!symbolTable.contains(id)) {
-                errors.add("Error at line " + current.line + ", column " + current.column + ": Undefined variable '" + id + "'");
+                errors.add("Error at line " + current.line + ", column " + current.column + 
+                    ": Undefined variable '" + id + "'");
             }
             return node;
         } else if ("(".equals(current.value)) {
@@ -424,7 +440,8 @@ public class Compiler {
             consume("OPERATOR", ")");
             return expr;
         }
-        errors.add("Error at line " + current.line + ", column " + current.column + ": Invalid expression factor");
+        errors.add("Error at line " + current.line + ", column " + current.column + 
+            ": Invalid expression factor");
         return null;
     }
 
@@ -479,11 +496,20 @@ public class Compiler {
 
     private String inferReturnType(ASTNode expr) {
         if (expr == null) return "Double";
-        if ("Literal".equals(expr.type)) return expr.value.startsWith("\"") ? "String" : "Double";
+        if ("Literal".equals(expr.type)) {
+            String value = expr.value;
+            if (value.startsWith("\"")) return "String";
+            if (Character.isDigit(value.charAt(0))) return "Double";
+            return "String";
+        }
         if ("BinaryOp".equals(expr.type)) {
             String leftType = inferReturnType(expr.children.get(0));
             String rightType = inferReturnType(expr.children.get(1));
-            return "String".equals(leftType) || "String".equals(rightType) ? "String" : "Double";
+            if (!leftType.equals(rightType)) {
+                errors.add("Type mismatch in binary operation: " + leftType + " and " + rightType);
+                return "Double"; // Default to Double for now
+            }
+            return "String".equals(leftType) ? "String" : "Double";
         }
         if ("Comparison".equals(expr.type)) return "Boolean";
         if ("Variable".equals(expr.type)) return symbolTable.getType(expr.value);
@@ -531,8 +557,14 @@ public class Compiler {
         for (ASTNode element : ast.children) {
             if ("Assignment".equals(element.type)) {
                 String type = inferReturnType(element.children.get(0));
+                String value = generateExpression(element.children.get(0));
+                // Append .0 to whole numbers
+                if (type.equals("Double") && element.children.get(0).type.equals("Literal") && 
+                    !value.contains(".") && !value.startsWith("\"")) {
+                    value += ".0";
+                }
                 output.append("        ").append(type).append(" ").append(element.value)
-                    .append(" = ").append(generateExpression(element.children.get(0))).append(";\n");
+                    .append(" = ").append(value).append(";\n");
             } else if ("FunctionCall".equals(element.type)) {
                 if ("print".equals(element.value)) {
                     if (element.children.get(0).children.isEmpty()) {
@@ -567,13 +599,24 @@ public class Compiler {
             return generateExpression(stmt) + ";\n";
         } else if ("Assignment".equals(stmt.type)) {
             String type = inferReturnType(stmt.children.get(0));
-            return type + " " + stmt.value + " = " + generateExpression(stmt.children.get(0)) + ";\n";
+            String value = generateExpression(stmt.children.get(0));
+            if (type.equals("Double") && stmt.children.get(0).type.equals("Literal") && 
+                !value.contains(".") && !value.startsWith("\"")) {
+                value += ".0";
+            }
+            return type + " " + stmt.value + " = " + value + ";\n";
         }
         return "";
     }
 
     private String generateExpression(ASTNode expr) {
-        if ("Literal".equals(expr.type)) return expr.value;
+        if ("Literal".equals(expr.type)) {
+            String value = expr.value;
+            if (inferReturnType(expr).equals("Double") && !value.contains(".") && !value.startsWith("\"")) {
+                return value + ".0";
+            }
+            return value;
+        }
         if ("Variable".equals(expr.type)) return expr.value;
         if ("BinaryOp".equals(expr.type)) {
             return generateExpression(expr.children.get(0)) + " " + expr.value + " " +
