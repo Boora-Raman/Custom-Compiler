@@ -1,0 +1,51 @@
+<program> ::= <statement_list>
+
+<statement_list> ::= <statement> | <statement> <statement_list> | ε
+
+<statement> ::= <assignment> | <function_definition> | <function_call> | <return_statement> | <if_statement>
+
+<assignment> ::= <identifier> "=" <expression> ";"
+
+<function_definition> ::= <identifier> "(" <parameter_list> ")" "{" <statement_list> "}"
+
+<parameter_list> ::= <identifier> | <identifier> "," <parameter_list> | ε
+
+<function_call> ::= "call" <identifier> "(" <argument_list> ")" ";"
+
+<argument_list> ::= <expression> | <expression> "," <argument_list> | ε
+
+<return_statement> ::= "return" <expression> ";"
+
+<if_statement> ::= "if" "(" <expression> ")" "{" <statement_list> "}"
+
+<expression> ::= <comparison_expression>
+
+<comparison_expression> ::= <additive_expression> | <additive_expression> <rel_op> <additive_expression>
+
+<additive_expression> ::= <multiplicative_expression> | <multiplicative_expression> <add_op> <multiplicative_expression>
+
+<multiplicative_expression> ::= <factor> | <factor> <mul_op> <factor>
+
+<factor> ::= <number> | <string> | <identifier> | "(" <expression> ")" | <function_call>
+
+<rel_op> ::= "==" | "!=" | "<=" | ">=" | "<" | ">"
+
+<add_op> ::= "+" | "-"
+
+<mul_op> ::= "*" | "/" | "%"
+
+<identifier> ::= <letter> | <letter> <alphanum>
+
+<letter> ::= "a" | "b" | "c" | ... | "z" | "A" | "B" | ... | "Z" | "_"
+
+<alphanum> ::= <letter> | <digit> | <alphanum> <letter> | <alphanum> <digit>
+
+<digit> ::= "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9"
+
+<number> ::= <digit> | <digit> <number> | <digit> "." <digit> | <digit> <number> "." <digit>
+
+<string> ::= "\"" <char_sequence> "\""
+
+<char_sequence> ::= <char> | <char> <char_sequence> | ε
+
+<char> ::= <letter> | <digit> | <symbol>   (* Any printable character except quote *)
