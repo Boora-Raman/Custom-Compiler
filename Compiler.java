@@ -524,6 +524,24 @@ public class Compiler {
             } else if ("FunctionCall".equals(node.type)) {
                 analyzeFunctionCall(node);
             }
+            analyzeExpressions(node);
+        }
+    }
+
+    private void analyzeExpressions(ASTNode node) {
+        for (ASTNode child : node.children) {
+            if ("FunctionCall".equals(child.type)) {
+                Token idToken = tokens.stream()
+                    .filter(t -> t.value.equals(child.value) && "IDENTIFIER".equals(t.type))
+                    .findFirst()
+                    .orElse(null);
+                int line = idToken != null ? idToken.line : 
+                           tokens.stream().filter(t -> t.value.equals("call") && t.line <= pos).mapToInt(t -> t.line).max().orElse(0);
+                int column = idToken != null ? idToken.column : 
+                             tokens.stream().filter(t -> t.value.equals("call") && t.line <= pos).mapToInt(t -> t.column).max().orElse(0);
+                analyzeFunctionCall(child, line, column);
+            }
+            analyzeExpressions(child);
         }
     }
 
@@ -542,7 +560,7 @@ public class Compiler {
         }
         symbolTable.addFunctionParams(funcName, paramTypes);
 
-        String returnType = "Double"; // Default for numeric operations
+        String returnType = "Double";
         for (int i = 1; i < func.children.size(); i++) {
             ASTNode stmt = func.children.get(i);
             if ("Return".equals(stmt.type) && !stmt.children.isEmpty()) {
@@ -618,11 +636,12 @@ public class Compiler {
             String leftType = inferReturnType(expr.children.get(0));
             String rightType = inferReturnType(expr.children.get(1));
             if (leftType.equals("Double") && rightType.equals("Double")) return "Double";
-            if (leftType.equals("String") || rightType.equals("String")) return "String"; // String concatenation
+            if (leftType.equals("String") || rightType.equals("String")) return "String";
             errors.add("Type error in binary operation at line " +
-                (tokens.get(pos).line) + ", column " + (tokens.get(pos).column) +
+                (tokens.size() > pos ? tokens.get(pos).line : 0) + ", column " +
+                (tokens.size() > pos ? tokens.get(pos).column : 0) +
                 ": incompatible types " + leftType + " and " + rightType);
-            return "Double"; // Default fallback
+            return "Double";
         }
         if ("Comparison".equals(expr.type)) return "Boolean";
         return "Double";
